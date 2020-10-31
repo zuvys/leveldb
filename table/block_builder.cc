@@ -86,15 +86,15 @@ Slice BlockBuilder::Finish() {
 void BlockBuilder::Add(const Slice& key, const Slice& value) {
   Slice last_key_piece(last_key_);
   assert(!finished_);               //如果已经标记完成了,错误               
-  assert(counter_ <= options_->block_restart_interval); //重启点跨度不能超过设置的值
+  assert(counter_ <= options_->block_restart_interval); //重启点间隔不能超过设置的值
   assert(buffer_.empty()  // No values yet?
          || options_->comparator->Compare(key, last_key_piece) > 0);  //插入的key必须比最后一个插入的key更大,保持有序
   size_t shared = 0;
   if (counter_ < options_->block_restart_interval) {
     // See how much sharing to do with previous string
-    //如果重启点跨度还没有超过设置的值
+    //如果重启点间隔还没有超过设置的值
     //就计算当前插入key与最后一次插入key的共享长度
-    //跨度太长会影响读取效率
+    //间隔太长会影响读取效率
     const size_t min_length = std::min(last_key_piece.size(), key.size());
     while ((shared < min_length) && (last_key_piece[shared] == key[shared])) {
       shared++;
