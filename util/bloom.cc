@@ -18,6 +18,8 @@ class BloomFilterPolicy : public FilterPolicy {
  public:
   explicit BloomFilterPolicy(int bits_per_key) : bits_per_key_(bits_per_key) {
     // We intentionally round down to reduce probing cost a little bit
+    //初始化key个hash函数
+    //最少1个,最多30个
     k_ = static_cast<size_t>(bits_per_key * 0.69);  // 0.69 =~ ln(2)
     if (k_ < 1) k_ = 1;
     if (k_ > 30) k_ = 30;
@@ -27,25 +29,31 @@ class BloomFilterPolicy : public FilterPolicy {
 
   void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
     // Compute bloom filter size (in both bits and bytes)
+    //多少字节位
     size_t bits = n * bits_per_key_;
 
     // For small n, we can see a very high false positive rate.  Fix it
     // by enforcing a minimum bloom filter length.
+    //最少8个字节
     if (bits < 64) bits = 64;
 
+    //计算多少字节数
     size_t bytes = (bits + 7) / 8;
     bits = bytes * 8;
 
     const size_t init_size = dst->size();
     dst->resize(init_size + bytes, 0);
+    //末尾记录多少个hash函数
     dst->push_back(static_cast<char>(k_));  // Remember # of probes in filter
     char* array = &(*dst)[init_size];
     for (int i = 0; i < n; i++) {
       // Use double-hashing to generate a sequence of hash values.
       // See analysis in [Kirsch,Mitzenmacher 2006].
+      //计算原始hash值
       uint32_t h = BloomHash(keys[i]);
       const uint32_t delta = (h >> 17) | (h << 15);  // Rotate right 17 bits
       for (size_t j = 0; j < k_; j++) {
+        //在原始hash值上加工产生k个hash值
         const uint32_t bitpos = h % bits;
         array[bitpos / 8] |= (1 << (bitpos % 8));
         h += delta;
@@ -64,14 +72,17 @@ class BloomFilterPolicy : public FilterPolicy {
     // bloom filters created using different parameters.
     const size_t k = array[len - 1];
     if (k > 30) {
+      //k大于30,考虑为命中,保留
       // Reserved for potentially new encodings for short bloom filters.
       // Consider it a match.
       return true;
     }
 
+    //计算原始hash值
     uint32_t h = BloomHash(key);
     const uint32_t delta = (h >> 17) | (h << 15);  // Rotate right 17 bits
     for (size_t j = 0; j < k; j++) {
+      //某一个hash值没命中,则一定不存在
       const uint32_t bitpos = h % bits;
       if ((array[bitpos / 8] & (1 << (bitpos % 8))) == 0) return false;
       h += delta;
