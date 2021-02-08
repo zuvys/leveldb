@@ -32,6 +32,7 @@ class LEVELDB_EXPORT Iterator {
 
   // An iterator is either positioned at a key/value pair, or
   // not valid.  This method returns true iff the iterator is valid.
+  // 指示一个迭代器是定位到的是一个key/value对,还是无效位置. 当且仅当迭代器定位到有效位置时该方法返回true
   virtual bool Valid() const = 0;
 
   // Position at the first key in the source.  The iterator is Valid()
@@ -40,36 +41,43 @@ class LEVELDB_EXPORT Iterator {
 
   // Position at the last key in the source.  The iterator is
   // Valid() after this call iff the source is not empty.
+  //定位到源中最后一个key. 此方法调用后,当且仅当源不为空时,此迭代器有效
   virtual void SeekToLast() = 0;
 
   // Position at the first key in the source that is at or past target.
   // The iterator is Valid() after this call iff the source contains
   // an entry that comes at or past target.
+  // 定位到源中第一个相等或大于target的key的位置
   virtual void Seek(const Slice& target) = 0;
 
   // Moves to the next entry in the source.  After this call, Valid() is
   // true iff the iterator was not positioned at the last entry in the source.
   // REQUIRES: Valid()
+  // 定位到源中下一个项位置
   virtual void Next() = 0;
 
   // Moves to the previous entry in the source.  After this call, Valid() is
   // true iff the iterator was not positioned at the first entry in source.
   // REQUIRES: Valid()
+  // 定位到源中前一个项位置
   virtual void Prev() = 0;
 
   // Return the key for the current entry.  The underlying storage for
   // the returned slice is valid only until the next modification of
   // the iterator.
   // REQUIRES: Valid()
+  // 返回当前项的key
   virtual Slice key() const = 0;
 
   // Return the value for the current entry.  The underlying storage for
   // the returned slice is valid only until the next modification of
   // the iterator.
   // REQUIRES: Valid()
+  // 返回当前项的value
   virtual Slice value() const = 0;
 
   // If an error has occurred, return it.  Else return an ok status.
+  // 如果发生错误,返回 it. 否则返回ok
   virtual Status status() const = 0;
 
   // Clients are allowed to register function/arg1/arg2 triples that
@@ -77,12 +85,14 @@ class LEVELDB_EXPORT Iterator {
   //
   // Note that unlike all of the preceding methods, this method is
   // not abstract and therefore clients should not override it.
+  // 客户端注册函数用于迭代器销毁时做一些清理工作
   using CleanupFunction = void (*)(void* arg1, void* arg2);
   void RegisterCleanup(CleanupFunction function, void* arg1, void* arg2);
 
  private:
   // Cleanup functions are stored in a single-linked list.
   // The list's head node is inlined in the iterator.
+  // 单项链表存储清理函数
   struct CleanupNode {
     // True if the node is not used. Only head nodes might be unused.
     bool IsEmpty() const { return function == nullptr; }
@@ -98,6 +108,8 @@ class LEVELDB_EXPORT Iterator {
     void* arg2;
     CleanupNode* next;
   };
+
+  //清理函数链表头
   CleanupNode cleanup_head_;
 };
 
